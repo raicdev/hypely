@@ -1,0 +1,33 @@
+{
+  "name": "hypely",
+  "version": "0.1.3",
+  "description": "A ultra-fast web framework supporting Bun and Node.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "bench": "autocannon -c 200 -d 20 http://127.0.0.1:3000/",
+    "build": "bun scripts/build.ts && tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/raicdev/hypely.git"
+  },
+  "author": "rai <me@rai.bio>",
+  "license": "MIT",
+  "dependencies": {
+    "fast-json-stringify": "^5.0.0",
+    "fast-querystring": "^1.1.2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.20",
+    "autocannon": "^7.15.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}

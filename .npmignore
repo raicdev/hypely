@@ -1,0 +1,5 @@
+# .npmignore
+src/
+tests/
+pnpm-lock.yaml
+bun.lock
