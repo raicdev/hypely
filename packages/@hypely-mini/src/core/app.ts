@@ -211,8 +211,7 @@ export class App {
             res.end(b);
           },
         }, res);
-        if (result instanceof Response) {
-          // Convert Response to Node.js response
+        if (result instanceof Response && !res.headersSent) {
           const headersObj = headersToObject(result.headers);
           const buf = Buffer.from(await result.arrayBuffer());
           if (!headersObj["content-length"]) {

@@ -12,7 +12,8 @@
     "outDir": "dist",
     "noEmit": false,
     "paths": {
-      "@/*": ["../packages/hypely"]
+      "@/*": ["../packages/hypely"],
+      "@mini/*": ["../packages/@hypely-mini/src/*"],
     }
   }
 }
