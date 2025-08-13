@@ -1,6 +1,7 @@
 {
   "name": "@hypely/mini",
   "version": "0.2.0",
+  "private": false,
   "description": "A mini and lightweight version of Hypely.",
   "author": "rai <me@rai.bio>",
   "license": "MIT",
@@ -23,5 +24,8 @@
   "devDependencies": {
     "@types/bun": "^1.2.20",
     "typescript": "^5.5.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

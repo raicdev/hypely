@@ -16,6 +16,11 @@
     "templates",
     "README.md"
   ],
+  "scripts": {
+    "build": "bun build index.ts --outdir dist --target node",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
   "dependencies": {
     "chalk": "^5.5.0",
     "commander": "^14.0.0",
