@@ -26,6 +26,44 @@ export const TIME_COLORS = {
   fast: color.green,
 };
 
+const STATUS_TEXT: Record<number, string> = {
+  100: "Continue",
+  101: "Switching Protocols",
+  102: "Processing",
+  200: "OK",
+  201: "Created",
+  202: "Accepted",
+  203: "Non-Authoritative Information",
+  204: "No Content",
+  205: "Reset Content",
+  206: "Partial Content",
+  301: "Moved Permanently",
+  302: "Found",
+  303: "See Other",
+  304: "Not Modified",
+  307: "Temporary Redirect",
+  308: "Permanent Redirect",
+  400: "Bad Request",
+  401: "Unauthorized",
+  403: "Forbidden",
+  404: "Not Found",
+  405: "Method Not Allowed",
+  409: "Conflict",
+  410: "Gone",
+  415: "Unsupported Media Type",
+  418: "I'm a teapot",
+  422: "Unprocessable Entity",
+  429: "Too Many Requests",
+  500: "Internal Server Error",
+  501: "Not Implemented",
+  502: "Bad Gateway",
+  503: "Service Unavailable",
+  504: "Gateway Timeout",
+};
+
+const statusColor = (status: number) =>
+  status >= 500 ? color.red : status >= 400 ? color.red : status >= 300 ? color.cyan : color.green;
+
 /**
  * Middleware that logs HTTP request method, URL path, and response time.
  * 
@@ -48,8 +86,36 @@ export const logger = (): Middleware => async (ctx, next) => {
   const result = await next();
   const time = Math.round(performance.now() - t);
 
-  const colorFn = METHOD_COLORS[ctx.method as keyof typeof METHOD_COLORS] || color.white;
+  // Resolve final status and text across adapters
+  let status = 404;
+  let statusText = STATUS_TEXT[status];
+
+  // Prefer the Response returned by downstream
+  const resp = (result instanceof Response
+    ? result
+    : (ctx as any).response instanceof Response
+      ? (ctx as any).response
+      : undefined) as Response | undefined;
+
+  if (resp) {
+    status = resp.status;
+    statusText = resp.statusText || STATUS_TEXT[status] || "";
+  } else if ((ctx as any).adapter === "node" && (ctx as any).resNative) {
+    const resNative = (ctx as any).resNative as { statusCode?: number; statusMessage?: string };
+    if (typeof resNative.statusCode === "number") {
+      status = resNative.statusCode;
+      statusText = resNative.statusMessage || STATUS_TEXT[status] || "";
+    }
+  }
+
+  const methodColor = METHOD_COLORS[ctx.method as keyof typeof METHOD_COLORS] || color.white;
   const timeFn = TIME_COLORS[time < 700 ? "fast" : time < 2000 ? "medium" : "slow"];
-  console.log(`${colorFn(ctx.method)} ${ctx.url.pathname} ${timeFn(time + "ms")}`);
+  const sc = statusColor(status);
+
+  // e.g. GET / 200 OK (3ms)
+  console.log(
+    `${methodColor(ctx.method)} ${ctx.url.pathname} ${sc(`${status} ${statusText || ""}`)} ${timeFn(`(${time}ms)`)}`
+  );
+
   return result ?? new Response("Not Found", { status: 404 });
 };
