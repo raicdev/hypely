@@ -3,7 +3,6 @@ import { App } from "@/core/app";
 
 const app = new App();
 
-// ルート登録直後に router の状態を出力
 app.fast("GET", "/", {
     raw: true,
     headers: {

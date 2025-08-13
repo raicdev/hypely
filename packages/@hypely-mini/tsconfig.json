@@ -12,7 +12,15 @@
     "outDir": "dist",
     "noEmit": false,
     "paths": {
-      "@/*": ["../packages/hypely"]
+      "@/*": ["./src/*"]
     }
-  }
+  },
+  "include": [
+    "src/index.ts",
+    "src/core/**/*.ts",
+    "src/utils/**/*.ts"
+  ],
+  "exclude": [
+    "src/adapters/**"
+  ]
 }
