@@ -54,8 +54,11 @@ jobs:
           BETA_VERSION="${CURRENT_VERSION}-beta.${TIMESTAMP}"
 
           bun pm version $BETA_VERSION
-
           cd ../..
+        
+      - name: Create beta tag
+        if: matrix.package == 'hypely'
+        run: |
           git tag "v${BETA_VERSION}"
           git push origin "v${BETA_VERSION}"
 
