@@ -11,6 +11,26 @@ export type BufferFastEntry = {
 };
 
 export type Middleware = Handler;
+
+export interface RequestContext {
+  url: URL;
+  method: Method;
+  params: Record<string, string>;
+  query: Record<string, string | string[]>;
+  get(h: string): string | undefined;
+  readText(): Promise<string>;
+  readJSON<T = unknown>(): Promise<T>;
+  readArrayBuffer(): Promise<ArrayBuffer>;
+  readForm(): Promise<Record<string, string | string[]>>;
+  getCookie(name: string): string | undefined;
+  cookies(): Record<string, string>;
+}
+
+export interface ResponseContext {
+  set(h: string, v: string): void;
+  text(s: string, status?: number): Response;
+  json(d: unknown, status?: number): Response;
+}
 export type Adapter = {
   name: string;
   fill: (ctx: Context, req: Request | any, res?: any) => void;
@@ -28,6 +48,14 @@ export interface Context {
   state: Record<string, unknown>;
   // Get a request header (case-insensitive). Returns undefined if missing.
   get(h: string): string | undefined;
+  // Request body helpers
+  readText(): Promise<string>;
+  readJSON<T = unknown>(): Promise<T>;
+  readArrayBuffer(): Promise<ArrayBuffer>;
+  readForm(): Promise<Record<string, string | string[]>>;
+  // Cookie helpers
+  getCookie(name: string): string | undefined;
+  cookies(): Record<string, string>;
   set(h: string, v: string): void;
   text(s: string, status?: number): Response;
   json(d: unknown, status?: number): Response;
@@ -36,4 +64,7 @@ export interface Context {
   adapter?: "node" | "bun" | "edge" | "deno";
   resNative?: unknown;
   response?: Response;
+  // Structured accessors
+  req: RequestContext;
+  res: ResponseContext;
 }

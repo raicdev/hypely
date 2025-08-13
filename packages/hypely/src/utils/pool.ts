@@ -8,8 +8,16 @@ export function acquireCtx(): Context {
     params: Object.create(null),
     query: Object.create(null),
   get(){ return undefined; },
+  async readText(){ return ""; },
+  async readJSON(){ return undefined as any; },
+  async readArrayBuffer(){ return new ArrayBuffer(0); },
+  async readForm(){ return {}; },
+  getCookie(){ return undefined; },
+  cookies(){ return {}; },
   set(){}, text(){}, json(){},
     responded: false,
+  req: {} as any,
+  res: {} as any,
   } as unknown as Context);
 }
 export function releaseCtx(ctx: Context) {

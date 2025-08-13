@@ -68,13 +68,89 @@ export const nodeAdapter = {
     ctx.method = req.method;
     ctx.url = new URL(req.url || "/", "http://localhost"); // 仮のベース
     ctx.params = {};
-    ctx.query = {};
+    // Parse query into string | string[]
+    ctx.query = (() => {
+      const out: Record<string, string | string[]> = Object.create(null);
+      const sp = ctx.url.searchParams;
+      // Use for..of over unique keys
+      const seen = new Set<string>();
+      sp.forEach((_: string, k: string) => seen.add(k));
+      for (const k of seen) {
+        const all = sp.getAll(k);
+        out[k] = all.length <= 1 ? (all[0] ?? "") : all;
+      }
+      return out;
+    })();
     ctx.state = {};
     ctx.get = (k: string) => {
       const key = k.toLowerCase();
       const v = (req.headers as Record<string, string | string[] | undefined>)[key];
       if (Array.isArray(v)) return v.join(", ");
       return v;
+    };
+    // Cookie helpers (parsed lazily and cached)
+    let cookieCache: Record<string, string> | null = null;
+    const parseCookies = () => {
+      if (cookieCache) return cookieCache;
+      const hdr = ctx.get("cookie");
+      const out: Record<string, string> = Object.create(null);
+      if (hdr) {
+        const parts = hdr.split(/;\s*/);
+        for (const p of parts) {
+          if (!p) continue;
+          const eq = p.indexOf("=");
+          if (eq === -1) continue;
+          const name = p.slice(0, eq).trim();
+          const val = p.slice(eq + 1).trim();
+          out[name] = decodeURIComponent(val);
+        }
+      }
+      cookieCache = out;
+      return out;
+    };
+    ctx.cookies = () => parseCookies();
+    ctx.getCookie = (name: string) => parseCookies()[name];
+    // Body helpers with caching
+    let bodyPromise: Promise<Buffer> | null = null;
+    const readRaw = (): Promise<Buffer> => {
+      if (bodyPromise) return bodyPromise;
+      bodyPromise = new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        req.on("data", (c: Buffer) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+        req.on("end", () => resolve(Buffer.concat(chunks)));
+        req.on("error", reject);
+      });
+      return bodyPromise;
+    };
+    ctx.readArrayBuffer = async () => {
+      const buf = await readRaw();
+      return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    };
+    ctx.readText = async () => {
+      const buf = await readRaw();
+      return buf.toString("utf8");
+    };
+    ctx.readJSON = async <T = unknown>() => {
+      const txt = await ctx.readText();
+      if (!txt) return undefined as unknown as T;
+      return JSON.parse(txt) as T;
+    };
+    ctx.readForm = async () => {
+      const ct = ctx.get("content-type") || "";
+      if (ct.includes("application/x-www-form-urlencoded")) {
+        const txt = await ctx.readText();
+        const out: Record<string, string | string[]> = Object.create(null);
+        const sp = new URLSearchParams(txt);
+        const seen = new Set<string>();
+        sp.forEach((_, k) => seen.add(k));
+        for (const k of seen) {
+          const all = sp.getAll(k);
+          out[k] = all.length <= 1 ? (all[0] ?? "") : all;
+        }
+        return out;
+      }
+      // Multipart parsing is not built-in; return empty for now
+      return {} as Record<string, string | string[]>;
     };
     ctx.set = (k: string, v: string) => res?.setHeader(k, v);
 
@@ -98,6 +174,25 @@ export const nodeAdapter = {
       });
       res?.end(b);
     };
+    // Structured accessors
+    ctx.req = {
+      url: ctx.url,
+      method: ctx.method,
+      params: ctx.params,
+      query: ctx.query,
+      get: ctx.get,
+      readText: ctx.readText,
+      readJSON: ctx.readJSON,
+      readArrayBuffer: ctx.readArrayBuffer,
+      readForm: ctx.readForm,
+      getCookie: ctx.getCookie,
+      cookies: ctx.cookies,
+    } as any;
+    ctx.res = {
+      set: ctx.set,
+      text: ctx.text,
+      json: ctx.json,
+    } as any;
   },
 
   notFound(res?: ServerResponse) {
