@@ -5,6 +5,9 @@ export const bunAdapter = {
   name: "bun",
   // adapters/bun.ts
   listen(port: number, onReq: (req: Request) => Promise<Response>, fastMap?: Record<string, Response>) {
+    if (!globalThis.Bun) {
+      throw new Error("`bunAdapter` only works in Bun runtime.");
+    }
     Bun.serve({
       port,
       fetch(req: Request) {
@@ -13,6 +16,19 @@ export const bunAdapter = {
           const path = req.url.slice(pathStart);
           const fastResp = fastMap[path];
           if (fastResp) return fastResp; // Responseをそのまま返す
+        }
+        // Attach client IP (if available) as headers so ctx.get("x-forwarded-for")/"x-real-ip" can read it
+        try {
+          const ip = this.requestIP(req);
+          if (ip) {
+            const headers = new Headers(req.headers);
+            if (!headers.has("x-forwarded-for")) headers.set("x-forwarded-for", String(ip));
+            if (!headers.has("x-real-ip")) headers.set("x-real-ip", String(ip));
+            const reqWithIP = new Request(req, { headers });
+            return onReq(reqWithIP);
+          }
+        } catch {
+          // ignore and fall back to original request
         }
         return onReq(req);
       }
@@ -38,7 +54,7 @@ export const bunAdapter = {
     ctx.responded = false;
     ctx.response = undefined as any; // ← 追加
 
-  ctx.get = (k: string) => req.headers.get(k) ?? undefined;
+    ctx.get = (k: string) => req.headers.get(k) ?? undefined;
     // Cookies
     let cookieCache: Record<string, string> | null = null;
     const parseCookies = () => {
