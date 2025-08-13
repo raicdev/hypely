@@ -1,6 +1,6 @@
 {
   "name": "hypely",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A ultra-fast web framework supporting Bun and Node.",
   "author": "rai <me@rai.bio>",
   "license": "MIT",

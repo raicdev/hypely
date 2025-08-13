@@ -97,9 +97,12 @@ async function run(
         spinner.start(
             `Scaffolding ${chalk.cyan(template.name)} in ${chalk.bold(path.basename(targetDir))}`
         );
-        const templateDir = path.join(__dirname, "templates", template.id);
-        if (!fs.existsSync(templateDir)) {
-            throw new Error(`Template folder not found: ${templateDir}`);
+        // Resolve template directory robustly for both dev (repo) and packaged (dist) runs
+        const templateDir = await resolveTemplateDir(template.id);
+        if (!templateDir) {
+            throw new Error(
+                `Template folder not found: tried under ${path.join(__dirname, "templates")} and ../templates`
+            );
         }
 
         const copyRecursive = (src: string, dest: string) => {
@@ -331,6 +334,36 @@ function getEnvPM(): PackageManager | undefined {
     if (ua.startsWith("yarn")) return "yarn";
     if (ua.startsWith("bun")) return "bun";
     if (ua.startsWith("npm")) return "npm";
+    return undefined;
+}
+
+async function resolveTemplateDir(tplId: TemplateId): Promise<string | undefined> {
+    // Try common locations relative to the built file and project root.
+    const candidates = [
+        path.join(__dirname, "templates", tplId),
+        path.join(__dirname, "..", "templates", tplId),
+        path.join(process.cwd(), "templates", tplId),
+    ];
+    for (const dir of candidates) {
+        try {
+            const stat = fs.statSync(dir);
+            if (stat.isDirectory()) return dir;
+        } catch {
+            // continue
+        }
+    }
+    // As a final attempt, walk up from __dirname looking for a 'templates' directory
+    try {
+        const templatesRoot = await findUp("templates", __dirname);
+        if (templatesRoot) {
+            const candidate = path.join(templatesRoot, tplId);
+            if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+                return candidate;
+            }
+        }
+    } catch {
+        // ignore
+    }
     return undefined;
 }
 

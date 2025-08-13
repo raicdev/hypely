@@ -1,6 +1,6 @@
 {
   "name": "create-hypely",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A package to create Hypely application.",
   "author": "rai <me@rai.bio>",
   "bin": {
@@ -20,22 +20,23 @@
     "README.md"
   ],
   "scripts": {
-    "build": "bun build index.ts --outdir dist --target node",
+  "build": "bun build index.ts --outdir dist --target node && bun run copy:templates",
+  "copy:templates": "mkdir -p dist/templates && cp -r templates/* dist/templates/ || xcopy templates dist\\templates \/E \/I \/Y \/Q",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "chalk": "^5.5.0",
     "commander": "^14.0.0",
-    "ora": "^8.2.0",
-    "prompts": "2.4.2"
+  "ora": "^8.2.0",
+  "prompts": "2.4.2",
+  "zod": "^4.0.17"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/prompts": "2.4.9",
-    "zod": "^4.0.17"
+    "@types/prompts": "2.4.9"
   }
 }
