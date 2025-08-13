@@ -1,8 +1,11 @@
 {
   "name": "create-hypely",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A package to create Hypely application.",
   "author": "rai <me@rai.bio>",
+  "bin": {
+    "create-hypely": "dist/index.js"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
