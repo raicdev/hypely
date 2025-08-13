@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        package: [hypely, "@hypely-mini", create-hypely]
+        package: [hypely, "@hypely/mini", create-hypely]
     permissions:
       contents: write
       id-token: write
