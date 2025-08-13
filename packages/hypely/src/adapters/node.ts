@@ -70,6 +70,12 @@ export const nodeAdapter = {
     ctx.params = {};
     ctx.query = {};
     ctx.state = {};
+    ctx.get = (k: string) => {
+      const key = k.toLowerCase();
+      const v = (req.headers as Record<string, string | string[] | undefined>)[key];
+      if (Array.isArray(v)) return v.join(", ");
+      return v;
+    };
     ctx.set = (k: string, v: string) => res?.setHeader(k, v);
 
     ctx.text = (s: string, status = 200) => {

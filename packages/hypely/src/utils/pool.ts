@@ -7,7 +7,8 @@ export function acquireCtx(): Context {
     state: Object.create(null),
     params: Object.create(null),
     query: Object.create(null),
-    set(){}, text(){}, json(){},
+  get(){ return undefined; },
+  set(){}, text(){}, json(){},
     responded: false,
   } as unknown as Context);
 }

@@ -26,6 +26,7 @@ export const bunAdapter = {
     ctx.responded = false;
     ctx.response = undefined as any; // ← 追加
 
+  ctx.get = (k: string) => req.headers.get(k) ?? undefined;
     ctx.set = () => { };
     ctx.text = (s, status = 200) => {
       ctx.responded = true;

@@ -25,6 +25,7 @@ export const denoAdapter = {
         ctx.responded = false;
         ctx.response = undefined as any;
 
+    ctx.get = (k: string) => req.headers.get(k) ?? undefined;
         ctx.set = () => { /* no-op until Response is returned */ };
         ctx.text = (s, status = 200) => {
             ctx.responded = true;

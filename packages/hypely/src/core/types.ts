@@ -26,6 +26,8 @@ export interface Context {
   params: Record<string, string>;
   query: Record<string, string | string[]>;
   state: Record<string, unknown>;
+  // Get a request header (case-insensitive). Returns undefined if missing.
+  get(h: string): string | undefined;
   set(h: string, v: string): void;
   text(s: string, status?: number): Response;
   json(d: unknown, status?: number): Response;
