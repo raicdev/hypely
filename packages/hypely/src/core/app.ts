@@ -2,8 +2,7 @@
 import type { Middleware, Context, Handler, Method, Adapter, BufferFastEntry, FastHandler } from "./types";
 import { createRouter } from "./router";
 import { acquireCtx, releaseCtx } from "../utils/pool";
-import chalk from "chalk";
-
+import { color } from "@/plugins";
 function headersToObject(h: Headers | Record<string, string> | undefined): Record<string, string> {
   if (!h) return {};
   if (h instanceof Headers) {
@@ -143,7 +142,11 @@ export class App {
    * @param port The port number to listen on. Defaults to 3000.
    */
   listen(adapter: Adapter, port = 3000) {
-    console.log(chalk.green(`[${adapter.name}]`), chalk.cyan(`listening on ${port}`));
+    try {
+      console.log(color.green(`[${adapter.name}]`), color.cyan(`listening on ${port}`));
+    } catch {
+      console.log(`[${adapter.name}] listening on ${port}`);
+    }
 
     const fastMap = this.fastRoutes;
 

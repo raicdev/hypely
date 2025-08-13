@@ -1,20 +1,29 @@
 // src/plugins/logger.ts
 import type { Middleware } from "@/core/types";
-import chalk from "chalk";
+
+export const color = {
+  green: (s: string) => `\x1b[32m${s}\x1b[0m`,
+  blue: (s: string) => `\x1b[34m${s}\x1b[0m`,
+  yellow: (s: string) => `\x1b[33m${s}\x1b[0m`,
+  red: (s: string) => `\x1b[31m${s}\x1b[0m`,
+  magenta: (s: string) => `\x1b[35m${s}\x1b[0m`,
+  cyan: (s: string) => `\x1b[36m${s}\x1b[0m`,
+  white: (s: string) => `\x1b[37m${s}\x1b[0m`,
+};
 
 export const METHOD_COLORS = {
-  GET: chalk.green,
-  POST: chalk.blue,
-  PUT: chalk.yellow,
-  DELETE: chalk.red,
-  PATCH: chalk.magenta,
-  OPTIONS: chalk.cyan,
+  GET: color.green,
+  POST: color.blue,
+  PUT: color.yellow,
+  DELETE: color.red,
+  PATCH: color.magenta,
+  OPTIONS: color.cyan,
 };
 
 export const TIME_COLORS = {
-  slow: chalk.red,
-  medium: chalk.yellow,
-  fast: chalk.green,
+  slow: color.red,
+  medium: color.yellow,
+  fast: color.green,
 };
 
 /**
@@ -39,7 +48,7 @@ export const logger = (): Middleware => async (ctx, next) => {
   const result = await next();
   const time = Math.round(performance.now() - t);
 
-  const colorFn = METHOD_COLORS[ctx.method as keyof typeof METHOD_COLORS] || chalk.white;
+  const colorFn = METHOD_COLORS[ctx.method as keyof typeof METHOD_COLORS] || color.white;
   const timeFn = TIME_COLORS[time < 700 ? "fast" : time < 2000 ? "medium" : "slow"];
   console.log(`${colorFn(ctx.method)} ${ctx.url.pathname} ${timeFn(time + "ms")}`);
   return result ?? new Response("Not Found", { status: 404 });

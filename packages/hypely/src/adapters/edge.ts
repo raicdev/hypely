@@ -2,6 +2,7 @@
 import type { BufferFastEntry, Context } from "@/core/types";
 import type { App } from "@/core/app";
 import chalk from "chalk";
+import { color } from "@/plugins";
 
 // Edge runtime adapter (e.g., Vercel Edge, Cloudflare Workers, Deno Deploy)
 // Usage: In your platform's fetch handler, call `app.handler(request, edgeAdapter)` and return the Response.
@@ -151,7 +152,7 @@ export const edgeAdapter = {
     },
 };
 
-const listeningLog = (path: string) => console.log(chalk.green("[edge]"), chalk.cyan(`listening on ${path}`));
+const listeningLog = (path: string) => console.log(color.green("[edge]"), color.cyan(`listening on ${path}`));
 
 // Create a platform-agnostic Edge fetch handler from an App
 export function edgeFetch(app: App) {

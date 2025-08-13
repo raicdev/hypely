@@ -1,7 +1,10 @@
 // adapters/deno.ts
 import type { App } from "@/core/app";
 import type { BufferFastEntry, Context } from "@/core/types";
-import chalk from "chalk";
+const color = {
+    green: (s: string) => `\x1b[32m${s}\x1b[0m`,
+    cyan: (s: string) => `\x1b[36m${s}\x1b[0m`,
+};
 
 export const denoAdapter = {
     name: "deno",
@@ -172,7 +175,10 @@ export function deno(app: App, optsOrPort?: number | Record<string, unknown>) {
         throw new Error("deno.serve requires Deno.serve to be available (run inside Deno runtime)");
     }
     const handler = denoFetch(app);
-    const listeningLog = (path: string) => console.log(chalk.green("[deno]"), chalk.cyan(`listening on ${path}`));
+        const listeningLog = (path: string) => {
+            try { console.log(color.green("[deno]"), color.cyan(`listening on ${path}`)); }
+            catch { console.log(`[deno] listening on ${path}`); }
+        };
     if (typeof optsOrPort === "number") {
         return D.serve({ port: optsOrPort, onListen({ path }: { path: string }) { listeningLog(path); } }, handler);
     }
