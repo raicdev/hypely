@@ -51,7 +51,8 @@ jobs:
       - name: Publish to npm (stable)
         run: |
           echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > ~/.npmrc
-          cd packages/${{ matrix.package }}
+            PACKAGE_DIR=$(echo "${{ matrix.package }}" | sed 's/\//-/g')
+            cd packages/$PACKAGE_DIR
           npm publish --tag latest
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -48,7 +48,8 @@ jobs:
         run: |
           TIMESTAMP=$(date +%Y%m%d%H%M%S)
 
-          cd packages/${{ matrix.package }}
+          PACKAGE_DIR=$(echo "${{ matrix.package }}" | sed 's/\//-/g')
+          cd packages/$PACKAGE_DIR
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           BETA_VERSION="${CURRENT_VERSION}-beta.${TIMESTAMP}"
 
@@ -61,7 +62,8 @@ jobs:
       - name: Publish to npm (beta)
         run: |
           echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > ~/.npmrc
-          cd packages/${{ matrix.package }}
+          PACKAGE_DIR=$(echo "${{ matrix.package }}" | sed 's/\//-/g')
+          cd packages/$PACKAGE_DIR
           npm publish --tag beta
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
