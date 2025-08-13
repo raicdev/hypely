@@ -18,12 +18,22 @@ export interface Context {
   params: Record<string, string>;
   query: Record<string, string | string[]>;
   state: Record<string, unknown>;
+  // Get a request header (case-insensitive). Returns undefined if missing.
+  get(h: string): string | undefined;
+  // Request body helpers
+  readText(): Promise<string>;
+  readJSON<T = unknown>(): Promise<T>;
+  readArrayBuffer(): Promise<ArrayBuffer>;
+  readForm(): Promise<Record<string, string | string[]>>;
+  // Cookie helpers
+  getCookie(name: string): string | undefined;
+  cookies(): Record<string, string>;
   set(h: string, v: string): void;
   text(s: string, status?: number): Response;
   json(d: unknown, status?: number): Response;
   stringify?: (d: unknown) => string;
   responded: boolean;
-  adapter?: "node" | "bun";
+  adapter?: "node" | "bun" | "edge" | "deno";
   resNative?: unknown;
   response?: Response;
 }
