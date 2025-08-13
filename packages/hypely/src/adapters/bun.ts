@@ -19,7 +19,7 @@ export const bunAdapter = {
         }
         // Attach client IP (if available) as headers so ctx.get("x-forwarded-for")/"x-real-ip" can read it
         try {
-          const ip = this.requestIP(req);
+          const ip = this.requestIP(req)?.address;
           if (ip) {
             const headers = new Headers(req.headers);
             if (!headers.has("x-forwarded-for")) headers.set("x-forwarded-for", String(ip));
