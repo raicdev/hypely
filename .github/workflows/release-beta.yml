@@ -59,6 +59,13 @@ jobs:
       - name: Create beta tag
         if: matrix.package == 'hypely'
         run: |
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+
+          PACKAGE_DIR=$(echo "${{ matrix.package }}" | sed 's/\//-/g')
+          cd packages/$PACKAGE_DIR
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          BETA_VERSION="${CURRENT_VERSION}-beta.${TIMESTAMP}"
+
           git tag "v${BETA_VERSION}"
           git push origin "v${BETA_VERSION}"
 
