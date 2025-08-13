@@ -1,0 +1,33 @@
+{
+  "name": "create-hypely",
+  "version": "0.2.0",
+  "description": "A package to create Hypely application.",
+  "author": "rai <me@rai.bio>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/raicdev/hypely.git"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "index.ts",
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "dependencies": {
+    "chalk": "^5.5.0",
+    "commander": "^14.0.0",
+    "ora": "^8.2.0",
+    "prompts": "2.4.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/prompts": "2.4.9",
+    "zod": "^4.0.17"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "hypely-cloudflare",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers application using Hypely",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "hypely": "^0.1.6"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest",
+    "tsx": "^4.20.4"
+  },
+  "license": "MIT"
+}

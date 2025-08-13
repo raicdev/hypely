@@ -11,8 +11,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  release-hypely-stable:
+  release:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: [hypely, "@hypely-mini", create-hypely]
     permissions:
       contents: write
       id-token: write
@@ -42,20 +45,19 @@ jobs:
       - name: Run tests
         run: echo "No tests configured yet"
 
-      - name: Build packages
-        run: bun run build --filter=hypely
+      - name: Build ${{ matrix.package }}
+        run: bun run build --filter=${{ matrix.package }}
 
       - name: Publish to npm (stable)
         run: |
           echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" > ~/.npmrc
-          
-          # Publish hypely
-          cd packages/hypely
+          cd packages/${{ matrix.package }}
           npm publish --tag latest
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release (only once)
+        if: matrix.package == 'hypely'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,8 +69,8 @@ jobs:
 
             See [CHANGELOG.md](./CHANGELOG.md) for details.
             
-            ## Published package
-            
+            ## Published packages
             - `hypely@${{ steps.version.outputs.version }}`
+            - `create-hypely@${{ steps.version.outputs.version }}`
           draft: false
           prerelease: false

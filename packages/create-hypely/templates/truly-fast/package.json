@@ -1,0 +1,18 @@
+{
+  "name": "hypely-bun",
+  "version": "1.0.0",
+  "description": "Bun application using Hypely",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "bun run index.ts",
+    "build": "bun build index.ts --outdir dist --target node"
+  },
+  "dependencies": {
+    "hypely": "^0.1.6"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "typescript": "latest"
+  },
+  "license": "MIT"
+}

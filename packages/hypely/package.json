@@ -1,12 +1,15 @@
 {
   "name": "hypely",
-  "version": "0.1.6",
+  "version": "0.2.0",
+  "description": "A ultra-fast web framework supporting Bun and Node.",
   "author": "rai <me@rai.bio>",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/raicdev/hypely.git"
   },
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -17,24 +20,21 @@
       "default": "./dist/edge.js"
     }
   },
-  "devDependencies": {
-    "@types/bun": "^1.2.20",
-    "typescript": "^5.5.0"
-  },
-  "description": "A ultra-fast web framework supporting Bun and Node.",
   "files": [
     "dist",
     "README.md"
   ],
-  "license": "MIT",
   "scripts": {
     "build": "bun scripts/build.ts && tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "type": "module",
-  "types": "dist/index.d.ts",
   "dependencies": {
     "chalk": "^5.5.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.20",
+    "typescript": "^5.5.0"
   }
 }

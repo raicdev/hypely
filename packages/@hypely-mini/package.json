@@ -1,27 +1,27 @@
 {
-  "name": "hypely-mini",
-  "version": "0.0.1",
+  "name": "@hypely/mini",
+  "version": "0.2.0",
+  "description": "A mini and lightweight version of Hypely.",
   "author": "rai <me@rai.bio>",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/raicdev/hypely.git"
   },
   "main": "dist/index.js",
-  "devDependencies": {
-    "@types/bun": "^1.2.20",
-    "typescript": "^5.5.0"
-  },
-  "description": "A mini version of Hypely.",
+  "types": "dist/index.d.ts",
+  "type": "module",
   "files": [
     "dist",
     "README.md"
   ],
-  "license": "MIT",
   "scripts": {
-  "build": "bun scripts/build.ts && tsc",
-  "lint": "eslint .",
-  "lint:fix": "eslint . --fix"
+    "build": "bun scripts/build.ts && tsc",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
-  "type": "module",
-  "types": "dist/index.d.ts"
+  "devDependencies": {
+    "@types/bun": "^1.2.20",
+    "typescript": "^5.5.0"
+  }
 }

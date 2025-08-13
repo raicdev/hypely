@@ -12,7 +12,6 @@ app.fast("GET", "/", {
     },
     body,
     status: 200
-
 });
 
 app.listen(bunAdapter, 3000);
