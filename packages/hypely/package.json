@@ -7,6 +7,16 @@
     "url": "git+https://github.com/raicdev/hypely.git"
   },
   "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./edge": {
+      "types": "./dist/edge.d.ts",
+      "default": "./dist/edge.js"
+    }
+  },
   "devDependencies": {
     "@types/bun": "^1.2.20",
     "typescript": "^5.5.0"
@@ -18,9 +28,9 @@
   ],
   "license": "MIT",
   "scripts": {
-  "build": "bun scripts/build.ts && tsc",
-  "lint": "eslint .",
-  "lint:fix": "eslint . --fix"
+    "build": "tsc",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "type": "module",
   "types": "dist/index.d.ts",
