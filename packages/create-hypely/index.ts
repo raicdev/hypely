@@ -111,10 +111,11 @@ async function run(
                 fs.mkdirSync(dest, { recursive: true });
                 for (const entry of fs.readdirSync(src)) {
                     const from = path.join(src, entry);
-                    const to = path.join(
-                        dest,
-                        entry === "_gitignore" ? ".gitignore" : entry
-                    );
+                    const toName =
+                        entry === "_gitignore" || entry === "gitignore"
+                            ? ".gitignore"
+                            : entry;
+                    const to = path.join(dest, toName);
                     copyRecursive(from, to);
                 }
             } else if (stat.isFile()) {
