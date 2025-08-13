@@ -18,7 +18,9 @@
   ],
   "license": "MIT",
   "scripts": {
-    "build": "bun scripts/build.ts && tsc"
+  "build": "bun scripts/build.ts && tsc",
+  "lint": "eslint .",
+  "lint:fix": "eslint . --fix"
   },
   "type": "module",
   "types": "dist/index.d.ts",

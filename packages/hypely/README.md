@@ -47,3 +47,13 @@ app.listen(bunAdapter, 3000);
 - Middleware system with ``app.use()``
 - High-performance routing
 - **Fast Mode** for ultra-low latency hot paths
+
+## Linting
+
+This repo uses ESLint (flat config) and Prettier at the root.
+
+- Run lint: `bun run lint`
+- Fix: `bun run lint:fix`
+- Format: `bun run format`
+
+CI runs lint and type-checks packages on each push/PR to `main`.

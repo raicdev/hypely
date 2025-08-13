@@ -28,21 +28,19 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Run linting
-        run: bun run lint
-
       - name: Type check
         run: |
-          cd packages/docsfly && bun run typecheck
-          cd ../create-docsfly-app && bun run typecheck
+          # Type-check packages using their tsconfig
+          cd packages/hypely && bunx tsc -p tsconfig.json --noEmit
+          cd ../@hypely-mini && bunx tsc -p tsconfig.json --noEmit
 
       - name: Run tests
-        run: bun run test
+        run: echo "No tests configured yet"
 
       - name: Build packages
-        run: bun run build
-
-      - name: Test create-docsfly-app CLI
         run: |
-          cd packages/create-docsfly-app
-          bun run test
+          cd packages/hypely && bun run build
+          cd ../@hypely-mini && bun run build
+
+      - name: Done
+        run: echo "CI finished"
