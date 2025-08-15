@@ -24,6 +24,16 @@ export const edgeAdapter = {
         // URL is absolute in edge runtimes
         ctx.url = new URL(req.url);
         ctx.params = {};
+    // Best-effort IP from platform-provided headers
+    const xf = req.headers.get("x-forwarded-for");
+    const xr = req.headers.get("x-real-ip");
+    ctx.ip = (xf ? xf.split(",")[0].trim() : (xr ?? undefined)) as any;
+        // Snapshot all request headers into a plain object
+        ctx.headers = (() => {
+            const out: Record<string, string> = Object.create(null);
+            req.headers.forEach((v, k) => { out[k] = v; });
+            return out;
+        })();
         // Query parse
         ctx.query = (() => {
             const out: Record<string, string | string[]> = Object.create(null);
@@ -40,26 +50,32 @@ export const edgeAdapter = {
         ctx.responded = false;
         ctx.response = undefined as any;
 
-    ctx.get = (k: string) => req.headers.get(k) ?? undefined;
-        ctx.set = () => { /* no-op on edge Response until returned */ };
+        ctx.get = (k: string) => req.headers.get(k) ?? undefined;
+        // Accumulate response headers and cookies and apply when creating Response
+        ctx.responseHeaders = ctx.responseHeaders ?? Object.create(null);
+        ctx.responseCookies = ctx.responseCookies ?? [];
+        ctx.set = (k: string, v: string) => { ctx.responseHeaders[k] = v; };
+        const applySetCookie = (hdrs: Headers) => {
+            for (const c of ctx.responseCookies!) hdrs.append("Set-Cookie", c);
+        };
         ctx.text = (s, status = 200) => {
             ctx.responded = true;
-            ctx.response = new Response(s, {
-                status,
-                headers: { "Content-Type": "text/plain; charset=utf-8" },
-            });
+            const hdrs = new Headers(ctx.responseHeaders);
+            if (!hdrs.has("content-type")) hdrs.set("Content-Type", "text/plain; charset=utf-8");
+            applySetCookie(hdrs);
+            ctx.response = new Response(s, { status, headers: hdrs });
             return ctx.response;
         };
         ctx.json = (obj, status = 200) => {
             ctx.responded = true;
             const payload = ctx.stringify ? ctx.stringify(obj) : JSON.stringify(obj);
-            ctx.response = new Response(payload, {
-                status,
-                headers: { "Content-Type": "application/json; charset=utf-8" },
-            });
+            const hdrs = new Headers(ctx.responseHeaders);
+            if (!hdrs.has("content-type")) hdrs.set("Content-Type", "application/json; charset=utf-8");
+            applySetCookie(hdrs);
+            ctx.response = new Response(payload, { status, headers: hdrs });
             return ctx.response;
         };
-        // Cookies
+        // Cookies (object API)
         let cookieCache: Record<string, string> | null = null;
         const parseCookies = () => {
             if (cookieCache) return cookieCache;
@@ -79,22 +95,38 @@ export const edgeAdapter = {
             cookieCache = out;
             return out;
         };
-        ctx.cookies = () => parseCookies();
-        ctx.getCookie = (name: string) => parseCookies()[name];
+        ctx.cookies = {
+            get: (name: string) => parseCookies()[name],
+            all: () => parseCookies(),
+            set: (name: string, value: string, options?: any) => {
+                const parts = [`${encodeURIComponent(name)}=${encodeURIComponent(value)}`];
+                if (options) {
+                    if (options.path) parts.push(`Path=${options.path}`);
+                    if (options.domain) parts.push(`Domain=${options.domain}`);
+                    if (options.maxAge !== undefined) parts.push(`Max-Age=${Math.floor(options.maxAge)}`);
+                    if (options.expires) parts.push(`Expires=${options.expires.toUTCString()}`);
+                    if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
+                    if (options.secure) parts.push(`Secure`);
+                    if (options.httpOnly) parts.push(`HttpOnly`);
+                }
+                const cookieStr = parts.join("; ");
+                ctx.responseCookies!.push(cookieStr);
+            },
+        };
         // Body readers
         let bodyText: Promise<string> | null = null;
         let bodyArray: Promise<ArrayBuffer> | null = null;
-        ctx.readText = () => (bodyText ??= req.text());
-        ctx.readArrayBuffer = () => (bodyArray ??= req.arrayBuffer());
-        ctx.readJSON = async <T = unknown>() => {
-            const txt = await ctx.readText();
+        const readText = () => (bodyText ??= req.text());
+        const readArrayBuffer = () => (bodyArray ??= req.arrayBuffer());
+        const readJSON = async <T = unknown>() => {
+            const txt = await readText();
             if (!txt) return undefined as unknown as T;
             return JSON.parse(txt) as T;
         };
-        ctx.readForm = async () => {
+        const readForm = async () => {
             const ct = ctx.get("content-type") || "";
             if (ct.includes("application/x-www-form-urlencoded")) {
-                const txt = await ctx.readText();
+                const txt = await readText();
                 const out: Record<string, string | string[]> = Object.create(null);
                 const sp = new URLSearchParams(txt);
                 const seen = new Set<string>();
@@ -124,12 +156,10 @@ export const edgeAdapter = {
             params: ctx.params,
             query: ctx.query,
             get: ctx.get,
-            readText: ctx.readText,
-            readJSON: ctx.readJSON,
-            readArrayBuffer: ctx.readArrayBuffer,
-            readForm: ctx.readForm,
-            getCookie: ctx.getCookie,
-            cookies: ctx.cookies,
+            text: readText,
+            json: readJSON,
+            arrayBuffer: readArrayBuffer,
+            form: readForm,
         } as any;
         ctx.res = {
             set: ctx.set,

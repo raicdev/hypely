@@ -68,6 +68,20 @@ export const nodeAdapter = {
     ctx.method = req.method;
     ctx.url = new URL(req.url || "/", "http://localhost"); // 仮のベース
     ctx.params = {};
+  // Best-effort IP: trust headers first if behind proxy, then socket
+  const xf = (req.headers["x-forwarded-for"] as string | string[] | undefined);
+  const xr = (req.headers["x-real-ip"] as string | string[] | undefined);
+  const pick = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v);
+  ctx.ip = (pick(xf)?.split(",")[0].trim() || pick(xr) || (req.socket && (req.socket as any).remoteAddress)) as any;
+    // Snapshot headers: Node provides lower-cased keys; join array values with ", "
+    ctx.headers = (() => {
+      const out: Record<string, string> = Object.create(null);
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (Array.isArray(v)) out[k] = v.join(", ");
+        else if (v !== undefined) out[k] = String(v);
+      }
+      return out;
+    })();
     // Parse query into string | string[]
     ctx.query = (() => {
       const out: Record<string, string | string[]> = Object.create(null);
@@ -88,7 +102,7 @@ export const nodeAdapter = {
       if (Array.isArray(v)) return v.join(", ");
       return v;
     };
-    // Cookie helpers (parsed lazily and cached)
+    // Cookies object API
     let cookieCache: Record<string, string> | null = null;
     const parseCookies = () => {
       if (cookieCache) return cookieCache;
@@ -108,8 +122,10 @@ export const nodeAdapter = {
       cookieCache = out;
       return out;
     };
-    ctx.cookies = () => parseCookies();
-    ctx.getCookie = (name: string) => parseCookies()[name];
+    ctx.cookies = {
+      get: (name: string) => parseCookies()[name],
+      all: () => parseCookies(),
+    };
     // Body helpers with caching
     let bodyPromise: Promise<Buffer> | null = null;
     const readRaw = (): Promise<Buffer> => {
@@ -122,23 +138,23 @@ export const nodeAdapter = {
       });
       return bodyPromise;
     };
-    ctx.readArrayBuffer = async () => {
+    const readArrayBuffer = async () => {
       const buf = await readRaw();
       return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
     };
-    ctx.readText = async () => {
+    const readText = async () => {
       const buf = await readRaw();
       return buf.toString("utf8");
     };
-    ctx.readJSON = async <T = unknown>() => {
-      const txt = await ctx.readText();
+    const readJSON = async <T = unknown>() => {
+      const txt = await readText();
       if (!txt) return undefined as unknown as T;
       return JSON.parse(txt) as T;
     };
-    ctx.readForm = async () => {
+    const readForm = async () => {
       const ct = ctx.get("content-type") || "";
       if (ct.includes("application/x-www-form-urlencoded")) {
-        const txt = await ctx.readText();
+        const txt = await readText();
         const out: Record<string, string | string[]> = Object.create(null);
         const sp = new URLSearchParams(txt);
         const seen = new Set<string>();
@@ -152,26 +168,60 @@ export const nodeAdapter = {
       // Multipart parsing is not built-in; return empty for now
       return {} as Record<string, string | string[]>;
     };
-    ctx.set = (k: string, v: string) => res?.setHeader(k, v);
+  // Accumulate headers and cookies for response
+  ctx.responseHeaders = ctx.responseHeaders ?? Object.create(null);
+  ctx.responseCookies = ctx.responseCookies ?? [];
+    ctx.set = (k: string, v: string) => {
+      ctx.responseHeaders[k] = v;
+      res?.setHeader(k, v);
+    };
+
+    const setCookie = (name: string, value: string, options?: any) => {
+      const parts = [`${encodeURIComponent(name)}=${encodeURIComponent(value)}`];
+      if (options) {
+        if (options.path) parts.push(`Path=${options.path}`);
+        if (options.domain) parts.push(`Domain=${options.domain}`);
+        if (options.maxAge !== undefined) parts.push(`Max-Age=${Math.floor(options.maxAge)}`);
+        if (options.expires) parts.push(`Expires=${options.expires.toUTCString()}`);
+        if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
+        if (options.secure) parts.push(`Secure`);
+        if (options.httpOnly) parts.push(`HttpOnly`);
+      }
+      const cookieStr = parts.join("; ");
+      ctx.responseCookies!.push(cookieStr);
+      const existing = res?.getHeader("Set-Cookie");
+      if (res) {
+        if (!existing) res.setHeader("Set-Cookie", cookieStr);
+        else if (Array.isArray(existing)) res.setHeader("Set-Cookie", [...existing, cookieStr]);
+        else res.setHeader("Set-Cookie", [String(existing), cookieStr]);
+      }
+    };
+    ctx.cookies.set = setCookie;
 
     ctx.text = (s: string, status = 200) => {
       const b = Buffer.from(s);
-      res?.writeHead(status, {
+      const hdrs: Record<string, string> = {
         "Content-Type": "text/plain; charset=utf-8",
         "Content-Length": String(b.byteLength),
         Connection: "keep-alive",
-      });
+        ...ctx.responseHeaders,
+      };
+      // Set-Cookie already applied via res.setHeader in setCookie
+      res?.writeHead(status, hdrs);
       res?.end(b);
     };
 
     ctx.json = (obj: unknown, status = 200) => {
       const s = ctx.stringify ? ctx.stringify(obj) : JSON.stringify(obj);
       const b = Buffer.from(s);
-      res?.writeHead(status, {
+      const hdrs: Record<string, string> = {
         "Content-Type": "application/json; charset=utf-8",
         "Content-Length": String(b.byteLength),
         Connection: "keep-alive",
-      });
+        ...ctx.responseHeaders,
+      };
+      // Set-Cookie already applied via res.setHeader in setCookie
+      res?.writeHead(status, hdrs);
       res?.end(b);
     };
     // Structured accessors
@@ -181,12 +231,10 @@ export const nodeAdapter = {
       params: ctx.params,
       query: ctx.query,
       get: ctx.get,
-      readText: ctx.readText,
-      readJSON: ctx.readJSON,
-      readArrayBuffer: ctx.readArrayBuffer,
-      readForm: ctx.readForm,
-      getCookie: ctx.getCookie,
-      cookies: ctx.cookies,
+      text: readText,
+      json: readJSON,
+      arrayBuffer: readArrayBuffer,
+      form: readForm,
     } as any;
     ctx.res = {
       set: ctx.set,

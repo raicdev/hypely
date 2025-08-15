@@ -15,8 +15,34 @@ function headersToObject(h: Headers | Record<string, string> | undefined): Recor
   return { ...h };
 }
 
+type MWEntry = { mw: Middleware; match?: (path: string) => boolean };
+
+function normalizePath(p: string) {
+  if (!p) return "/";
+  if (!p.startsWith("/")) p = "/" + p;
+  if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
+  return p;
+}
+
+function compilePathMatcher(pattern: string): (path: string) => boolean {
+  const pat = normalizePath(pattern);
+  // No wildcard => prefix match (Express-like)
+  if (!pat.includes("*")) {
+    return (path: string) => {
+      const p = normalizePath(path);
+      return p === pat || p.startsWith(pat + "/");
+    };
+  }
+  // Glob -> RegExp (^...$)
+  // Keep '/' as is. Escape regex specials except '*'. Then replace ** and *.
+  const escaped = pat.replace(/[-\\^$+?.()|[\]{}]/g, "\\$&");
+  const body = escaped.replace(/\*\*/g, ".*").replace(/\*/g, "[^/]*");
+  const re = new RegExp("^" + body + "$");
+  return (path: string) => re.test(normalizePath(path));
+}
+
 export class App {
-  #middlewares: Middleware[] = [];
+  #middlewares: MWEntry[] = [];
   #router = createRouter();
 
   /**
@@ -31,11 +57,20 @@ export class App {
 
   /**
    * Use a middleware function to handle the request.
+   * @param path The path to match.
    * @param mw A middleware function.
    * @returns The current App instance.
    */
-  use(mw: Middleware) {
-    this.#middlewares.push(mw);
+  use(mw: Middleware): this;
+  use(path: string, mw: Middleware): this;
+  use(arg1: string | Middleware, arg2?: Middleware): this {
+    if (typeof arg1 === "function") {
+      this.#middlewares.push({ mw: arg1 });
+    } else if (typeof arg1 === "string" && typeof arg2 === "function") {
+      this.#middlewares.push({ mw: arg2, match: compilePathMatcher(arg1) });
+    } else {
+      throw new Error("use() expects (mw) or (path, mw)");
+    }
     return this;
   }
 
@@ -82,8 +117,13 @@ export class App {
    * and returns a Promise that resolves to a Response.
    */
   buildPipeline() {
-    const chain = this.#middlewares;
     return async (ctx: Context, last: () => Promise<Response | void>): Promise<Response> => {
+      // Select applicable middlewares for this path, preserving registration order
+      const path = ctx.url.pathname;
+      const chain = this.#middlewares
+        .filter(e => (e.match ? e.match(path) : true))
+        .map(e => e.mw);
+
       let idx = -1;
       const dispatch = async (i: number): Promise<Response | void> => {
         if (i <= idx) throw new Error("next() called multiple times");

@@ -12,18 +12,27 @@ export type BufferFastEntry = {
 
 export type Middleware = Handler;
 
+export interface CookieOptions {
+  path?: string;
+  domain?: string;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: "Strict" | "Lax" | "None";
+  maxAge?: number; // seconds
+  expires?: Date;
+}
+
 export interface RequestContext {
   url: URL;
   method: Method;
   params: Record<string, string>;
   query: Record<string, string | string[]>;
   get(h: string): string | undefined;
-  readText(): Promise<string>;
-  readJSON<T = unknown>(): Promise<T>;
-  readArrayBuffer(): Promise<ArrayBuffer>;
-  readForm(): Promise<Record<string, string | string[]>>;
-  getCookie(name: string): string | undefined;
-  cookies(): Record<string, string>;
+  // New, fetch-like body readers on ctx.req
+  text(): Promise<string>;
+  json<T = unknown>(): Promise<T>;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  form(): Promise<Record<string, string | string[]>>;
 }
 
 export interface ResponseContext {
@@ -45,22 +54,28 @@ export interface Context {
   method: Method;
   params: Record<string, string>;
   query: Record<string, string | string[]>;
+  // Best-effort client IP, derived from headers (x-forwarded-for/x-real-ip) or connection info
+  ip?: string;
+  // All request headers as a plain, lower-cased key map. Values are comma-joined if multiple.
+  headers: Record<string, string>;
+  // Collected response headers set via ctx.set().
+  responseHeaders: Record<string, string>;
   state: Record<string, unknown>;
   // Get a request header (case-insensitive). Returns undefined if missing.
   get(h: string): string | undefined;
-  // Request body helpers
-  readText(): Promise<string>;
-  readJSON<T = unknown>(): Promise<T>;
-  readArrayBuffer(): Promise<ArrayBuffer>;
-  readForm(): Promise<Record<string, string | string[]>>;
-  // Cookie helpers
-  getCookie(name: string): string | undefined;
-  cookies(): Record<string, string>;
+  // Cookie helpers consolidated under ctx.cookies
+  cookies: {
+    get(name: string): string | undefined;
+    all(): Record<string, string>;
+    set(name: string, value: string, options?: CookieOptions): void;
+  };
   set(h: string, v: string): void;
   text(s: string, status?: number): Response;
   json(d: unknown, status?: number): Response;
   stringify?: (d: unknown) => string;
   responded: boolean;
+  // Accumulated Set-Cookie values to be applied on response creation
+  responseCookies?: string[];
   adapter?: "node" | "bun" | "edge" | "deno";
   resNative?: unknown;
   response?: Response;
